@@ -15,7 +15,7 @@
 
 import collectd
 import json
-import urllib2
+import httplib
 import socket
 import collections
 
@@ -25,6 +25,7 @@ MESOS_HOST = "localhost"
 MESOS_PORT = 5050
 MESOS_VERSION = "0.22.0"
 MESOS_URL = ""
+PROTOCOL = "http"
 VERBOSE_LOGGING = False
 
 CONFIGS = []
@@ -185,6 +186,7 @@ def configure_callback(conf):
     verboseLogging = VERBOSE_LOGGING
     version = MESOS_VERSION
     instance = MESOS_INSTANCE
+    protocol = PROTOCOL
     for node in conf.children:
         if node.key == 'Host':
             host = node.values[0]
@@ -196,6 +198,8 @@ def configure_callback(conf):
             version = node.values[0]
         elif node.key == 'Instance':
             instance = node.values[0]
+        elif node.key == 'Protocol':
+            protocol = node.values[0]
         else:
             collectd.warning('mesos-master plugin: Unknown config key: %s.' % node.key)
             continue
@@ -204,21 +208,34 @@ def configure_callback(conf):
     CONFIGS.append({
         'host': host,
         'port': port,
-        'mesos_url': "http://" + host + ":" + str(port) + "/metrics/snapshot",
+        'mesos_url': host + ":" + str(port),
         'verboseLogging': verboseLogging,
         'version': version,
         'instance': instance,
+        'protocol': protocol,
     })
 
 def fetch_stats():
     for conf in CONFIGS:
-      try:
-          result = json.load(urllib2.urlopen(conf['mesos_url'], timeout=10))
-      except urllib2.URLError, e:
+        c = None
+        if conf['protocol'] == "https":
+            c = httplib.HTTPSConnection(conf['mesos_url'], timeout=10)
+        else:
+            c = httplib.HTTPConnection(conf['mesos_url'], timeout=10)
+
+        try:
+            c.request("GET", "/metrics/snapshot")
+        except:
           collectd.error('mesos-master plugin: Error connecting to %s - %r' % (conf['mesos_url'], e))
           return None
-      parse_stats(conf, result)
 
+        response = c.getresponse()
+        if response.status != 200:
+            collectd.error('mesos-master plugin: Received http status %d when connecting to %s' % (response.status, conf['mesos_url']))
+            return None
+
+        result = json.load(response)
+        parse_stats(conf, result)
 
 def parse_stats(conf, json):
     """Parse stats response from Mesos"""
