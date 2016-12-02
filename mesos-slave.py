@@ -166,12 +166,12 @@ def fetch_stats():
         try:
             c.request("GET", "/metrics/snapshot")
         except:
-          collectd.error('mesos-slave plugin: Error connecting to %s - %r' % (conf['mesos_url'], e))
+          collectd.error('mesos-slave plugin: Error connecting to %s - %r' % (conf['mesos_url'], sys.exc_info()[0]))
           return None
 
         response = c.getresponse()
         if response.status != 200:
-            collectd.error('mesos-master plugin: Received http status %d when connecting to %s' % (response.status, conf['mesos_url']))
+            collectd.error('mesos-slave plugin: Received http status %d when connecting to %s' % (response.status, conf['mesos_url']))
             return None
 
         result = json.load(response)

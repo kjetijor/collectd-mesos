@@ -226,7 +226,7 @@ def fetch_stats():
         try:
             c.request("GET", "/metrics/snapshot")
         except:
-          collectd.error('mesos-master plugin: Error connecting to %s - %r' % (conf['mesos_url'], e))
+          collectd.error('mesos-master plugin: Error connecting to %s - %r' % (conf['mesos_url'], sys.exc_info()[0]))
           return None
 
         response = c.getresponse()
