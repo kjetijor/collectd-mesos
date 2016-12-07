@@ -18,6 +18,7 @@ import json
 import httplib
 import socket
 import collections
+import sys
 
 PREFIX = "mesos-master"
 MESOS_INSTANCE = ""
