@@ -205,7 +205,6 @@ def dispatch_stat(result, name, key, conf):
 
 
 def read_callback():
-    log_verbose('true', 'Read callback called')
     stats = fetch_stats()
 
 
